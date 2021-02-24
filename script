@@ -1,0 +1,50 @@
+let scheduleUpcomingLive=()=> {
+  let results = YouTube.Search.list(
+    'snippet', {
+    channelId: 'CHANNEL ID', //CHANNEL IDを、予定を取りたいYoutubeのチャンネルのChannel IDに書き換えてください（URLから取れます）
+    eventType:'upcoming',
+    type:'video'
+    }
+    );
+
+  let calendarId = 'YOUR CALENDAR ID';//YOUR CALENDAR IDを、予定を登録したいカレンダーのカレンダーIDに書き換えてください
+  let now = new Date()
+  let optionalArgs = {
+    timeMax: (new Date(now.getTime() + (1095 * 24 * 60 * 60 * 1000))).toISOString(),
+    timeMin: (new Date(now.getTime() - ( 7 * 24 * 60 * 60 * 1000))).toISOString(),
+    showDeleted: false,
+    singleEvents: true,
+  };
+  let response = Calendar.Events.list(calendarId, optionalArgs);
+  let events = response.items;
+
+  for(let i in results.items){
+    let resultsVideo = YouTube.Videos.list(
+      'snippet,liveStreamingDetails',{
+        id : results.items[i].id.videoId
+        }
+      )
+
+    let VideoId = results.items[i].id.videoId
+
+    let URLofstream = 'https://www.youtube.com/watch?v=' + VideoId + '&ab_channel=' + resultsVideo.items[0].snippet.channelTitle.replace(/\s+/g, "");
+
+    let title = resultsVideo.items[0].snippet.title;
+    let startTime = new Date(resultsVideo.items[0].liveStreamingDetails.scheduledStartTime);
+    let endTime = new Date(resultsVideo.items[0].liveStreamingDetails.scheduledStartTime);
+    endTime.setHours(endTime.getHours() + 1)
+    let option = {
+      description: resultsVideo.items[0].snippet.description,
+      location: URLofstream
+      }
+      let arrayOfLocation = []
+
+      for (let n in events) {
+        arrayOfLocation.splice(n,0,events[n].getLocation())
+      }
+
+      if (arrayOfLocation.indexOf(URLofstream) < 0 ) {
+        CalendarApp.getCalendarById(calendarId).createEvent(title, startTime, endTime, option);
+        }
+    }
+  }
